@@ -1,17 +1,14 @@
 import os
 import random
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, CallbackContext, filters
 from dotenv import load_dotenv
 
-# تحميل توكن البوت من ملف .env
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
-# تخزين العناصر لكل مستخدم (أسئلة أو صور)
-user_wheel = {}  # user_id: {"items": [], "active": False}
+user_wheel = {}
 
-# بدء المحادثة الخاصة
 def start(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     if user_id not in user_wheel:
@@ -25,7 +22,6 @@ def start(update: Update, context: CallbackContext):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# استقبال النصوص أو الصور
 def receive_item(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     if user_id not in user_wheel:
@@ -43,7 +39,6 @@ def receive_item(update: Update, context: CallbackContext):
         user_wheel[user_id]["items"].append(item)
         update.message.reply_text(f"تم إضافة عنصر جديد. العدد الحالي: {len(user_wheel[user_id]['items'])}")
 
-# التعامل مع أزرار إنهاء أو إعادة ضبط العجلة
 def button_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     user_id = query.from_user.id
@@ -61,7 +56,6 @@ def button_handler(update: Update, context: CallbackContext):
         user_wheel[user_id] = {"items": [], "active": False}
         query.edit_message_text("تم مسح جميع العناصر. يمكنك البدء بإضافة عناصر جديدة.")
 
-# دوران العجلة في المجموعة
 def spin(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     if user_id not in user_wheel or not user_wheel[user_id]["active"]:
@@ -75,14 +69,13 @@ def spin(update: Update, context: CallbackContext):
     elif item["type"] == "photo":
         update.message.reply_photo(photo=item["content"], caption="🎡 العجلة توقفت على صورة!")
 
-# إعداد البوت
 updater = Updater(TOKEN)
 dispatcher = updater.dispatcher
 
 dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(MessageHandler(Filters.text | Filters.photo, receive_item))
+dispatcher.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, receive_item))
 dispatcher.add_handler(CallbackQueryHandler(button_handler))
-dispatcher.add_handler(CommandHandler('spin', spin))  # يستخدم في المجموعة
+dispatcher.add_handler(CommandHandler('spin', spin))
 
 updater.start_polling()
 updater.idle()
